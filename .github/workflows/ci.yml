@@ -2,7 +2,7 @@ name: Continuous Integration
 on: [push, pull_request]
 
 env:
-  PROJ_VERSION: 6.3.0
+  PROJ_VERSION: 7.0.1
 
 jobs:
   rustfmt:

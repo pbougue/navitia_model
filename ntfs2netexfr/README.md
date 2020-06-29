@@ -8,7 +8,7 @@ format.
 
 ## Installation
 
-To install, you first need to install [PROJ] version 6.3.0.  See [PROJ
+To install, you first need to install [PROJ] version 7.0.1.  See [PROJ
 installation instructions].
 
 [PROJ]: https://proj.org/
