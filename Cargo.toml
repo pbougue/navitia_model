@@ -21,6 +21,9 @@ exclude = [
 	"tests/",
 ]
 
+[package.metadata.cargo-udeps.ignore]
+normal = ["minidom_writer", "md5"]
+
 [badges]
 travis-ci = { repository = "CanalTP/transit_model" }
 
@@ -61,7 +64,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 skip_error = { version = "1", features = ["log"] }
 tempfile = "3"
-time-parse = "0.1"
 typed_index_collection = "1"
 walkdir = "2.3"
 wkt = "0.5"
