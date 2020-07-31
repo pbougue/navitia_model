@@ -1360,6 +1360,15 @@ impl AddPrefix for Comment {
     }
 }
 
+impl Comment {
+    pub fn is_similar(&self, other: &Self) -> bool {
+        self.comment_type == other.comment_type
+            && self.label == other.label
+            && self.name == other.name
+            && self.url == other.url
+    }
+}
+
 #[derive(
     Serialize, Deserialize, Debug, Derivative, PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy,
 )]

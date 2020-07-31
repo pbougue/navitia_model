@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 use skip_error::skip_error_and_log;
 use std::{
     cmp::{self, Ordering},
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     convert::TryFrom,
     iter::FromIterator,
     ops,
@@ -758,6 +758,38 @@ impl Collections {
         self.calendars
             .retain(|calendar| calendars_used.contains(calendar));
         self.vehicle_journeys = CollectionWithId::new(vehicle_journeys).unwrap();
+    }
+
+    /// Many comments are identical and can be deduplicated
+    pub fn comment_deduplication(&mut self) {
+        let mut lines = self.lines.take();
+        for line in &mut lines {
+            let mut useful_comments = BTreeSet::new();
+            for comment_id in line.comment_links() {
+                if let Some(comment) = self.comments.get(comment_id) {
+                    if !self.is_any_comment_similar(comment, &useful_comments) {
+                        useful_comments.insert(comment_id);
+                    }
+                }
+            }
+            if useful_comments.len() != line.comment_links().len() {
+                line.comment_links = useful_comments.iter().map(|s| s.to_string()).collect();
+            }
+        }
+        self.lines = CollectionWithId::new(lines).unwrap();
+    }
+
+    fn is_any_comment_similar(&self, candidate: &Comment, collection: &BTreeSet<&str>) -> bool {
+        for other in collection {
+            if self
+                .comments
+                .get(other)
+                .map_or_else(|| false, |c| candidate.is_similar(c))
+            {
+                return true;
+            }
+        }
+        false
     }
 
     /// If the route name is empty, it is derived from the most frequent
