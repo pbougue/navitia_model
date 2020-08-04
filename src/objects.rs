@@ -1330,7 +1330,7 @@ impl_with_id!(Company);
 
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Ord, PartialOrd, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum CommentType {
     #[derivative(Default)]
@@ -1359,43 +1359,6 @@ impl AddPrefix for Comment {
         self.id = prefix_conf.schedule_prefix(self.id.as_str());
     }
 }
-
-/// Wrapper for Comment to compare and use regular collections for similar comments
-/// And eventually to help remove those
-pub struct SimilarComment<'a> {
-    pub comment: &'a Comment,
-}
-
-impl Ord for SimilarComment<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.comment.comment_type != other.comment.comment_type {
-            self.comment.comment_type.cmp(&other.comment.comment_type)
-        } else if self.comment.label != other.comment.label {
-            self.comment.label.cmp(&other.comment.label)
-        } else if self.comment.url != other.comment.url {
-            self.comment.url.cmp(&other.comment.url)
-        } else {
-            self.comment.name.cmp(&other.comment.name)
-        }
-    }
-}
-
-impl PartialOrd for SimilarComment<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for SimilarComment<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.comment.comment_type == other.comment.comment_type
-            && self.comment.label == other.comment.label
-            && self.comment.url == other.comment.url
-            && self.comment.name == other.comment.name
-    }
-}
-
-impl Eq for SimilarComment<'_> {}
 
 #[derive(
     Serialize, Deserialize, Debug, Derivative, PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Copy,

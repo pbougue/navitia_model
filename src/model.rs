@@ -762,17 +762,17 @@ impl Collections {
 
     /// Some comments are identical and can be deduplicated
     pub fn comment_deduplication(&mut self) {
-        let doubloons2ref = &self.get_comment_map_doubloon_to_referent();
-        if doubloons2ref.is_empty() {
+        let doubloon2ref = &self.get_comment_map_doubloon_to_referent();
+        if doubloon2ref.is_empty() {
             return;
         }
-        let doubloons: BTreeSet<String> = doubloons2ref.keys().cloned().collect();
+        let doubloons: BTreeSet<String> = doubloon2ref.keys().cloned().collect();
 
-        replace_comment_doubloons_by_ref(&mut self.lines, &doubloons, &doubloons2ref);
-        replace_comment_doubloons_by_ref(&mut self.routes, &doubloons, &doubloons2ref);
-        replace_comment_doubloons_by_ref(&mut self.stop_areas, &doubloons, &doubloons2ref);
-        replace_comment_doubloons_by_ref(&mut self.stop_points, &doubloons, &doubloons2ref);
-        replace_comment_doubloons_by_ref(&mut self.stop_locations, &doubloons, &doubloons2ref);
+        replace_comment_doubloons_by_ref(&mut self.lines, &doubloons, &doubloon2ref);
+        replace_comment_doubloons_by_ref(&mut self.routes, &doubloons, &doubloon2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_areas, &doubloons, &doubloon2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_points, &doubloons, &doubloon2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_locations, &doubloons, &doubloon2ref);
 
         fn replace_comment_doubloons_by_ref<T>(
             collection: &mut CollectionWithId<T>,
@@ -807,19 +807,19 @@ impl Collections {
 
     /// From comment collection only, return a map of the similar comments.
     ///
-    /// Result: doubloons (comments to be removed) are mapped to their
-    /// referent comment (unique to be kept and similar to given doubloon)
+    /// Result: doubloons (comments to be removed) are mapped to their similar
+    /// referent (unique to be kept)
     fn get_comment_map_doubloon_to_referent(&self) -> BTreeMap<String, String> {
         let mut doubloon2ref: BTreeMap<String, String> = BTreeMap::new();
-        // Map of the referent comments id (uniqueness given the similar comparison)
-        let mut map_ref: BTreeMap<SimilarComment, &str> = BTreeMap::new();
+        // Map of the referent comments id (uniqueness given the similarity_key)
+        let mut map_ref: BTreeMap<&str, &str> = BTreeMap::new();
 
         for (_, comment) in &self.comments {
-            let sim = SimilarComment { comment };
-            if let Some(ref_id) = map_ref.get(&sim) {
+            let similarity_key = comment.name.as_str(); // name only is considered
+            if let Some(ref_id) = map_ref.get(similarity_key) {
                 doubloon2ref.insert(comment.id.to_string(), ref_id.to_string());
             } else {
-                map_ref.insert(sim, &comment.id);
+                map_ref.insert(similarity_key, &comment.id);
             }
         }
         doubloon2ref
