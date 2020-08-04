@@ -774,6 +774,15 @@ impl Collections {
         replace_comment_doubloons_by_ref(&mut self.stop_points, &doubloons, &doubloon2ref);
         replace_comment_doubloons_by_ref(&mut self.stop_locations, &doubloons, &doubloon2ref);
 
+        replace_comment_doubloons_by_ref(&mut self.vehicle_journeys, &doubloons, &doubloon2ref);
+        {
+            for comment_id in self.stop_time_comments.values_mut() {
+                if doubloons.contains(comment_id) {
+                    *comment_id = doubloon2ref[comment_id].clone();
+                }
+            }
+        }
+
         fn replace_comment_doubloons_by_ref<T>(
             collection: &mut CollectionWithId<T>,
             doubloons: &BTreeSet<String>,
