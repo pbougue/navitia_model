@@ -760,36 +760,69 @@ impl Collections {
         self.vehicle_journeys = CollectionWithId::new(vehicle_journeys).unwrap();
     }
 
-    /// Many comments are identical and can be deduplicated
+    /// Some comments are identical and can be deduplicated
     pub fn comment_deduplication(&mut self) {
-        let mut lines = self.lines.take();
-        for line in &mut lines {
-            let mut useful_comments = BTreeSet::new();
-            for comment_id in line.comment_links() {
-                if let Some(comment) = self.comments.get(comment_id) {
-                    if !self.is_any_comment_similar(comment, &useful_comments) {
-                        useful_comments.insert(comment_id);
-                    }
+        let doubloons2ref = &self.get_comment_map_doubloon_to_referent();
+        if doubloons2ref.is_empty() {
+            return;
+        }
+        let doubloons: BTreeSet<String> = doubloons2ref.keys().cloned().collect();
+
+        replace_comment_doubloons_by_ref(&mut self.lines, &doubloons, &doubloons2ref);
+        replace_comment_doubloons_by_ref(&mut self.routes, &doubloons, &doubloons2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_areas, &doubloons, &doubloons2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_points, &doubloons, &doubloons2ref);
+        replace_comment_doubloons_by_ref(&mut self.stop_locations, &doubloons, &doubloons2ref);
+
+        fn replace_comment_doubloons_by_ref<T>(
+            collection: &mut CollectionWithId<T>,
+            doubloons: &BTreeSet<String>,
+            doubloons2ref: &BTreeMap<String, String>,
+        ) where
+            T: Id<T> + CommentLinks,
+        {
+            let mut map_pt_object_doubloons: BTreeMap<Idx<T>, Vec<String>> = BTreeMap::new();
+            for (idx, pt_object) in collection.iter() {
+                let intersection: Vec<String> = pt_object
+                    .comment_links()
+                    .intersection(&doubloons)
+                    .cloned()
+                    .collect();
+                if !intersection.is_empty() {
+                    map_pt_object_doubloons.insert(idx, intersection);
                 }
             }
-            if useful_comments.len() != line.comment_links().len() {
-                line.comment_links = useful_comments.iter().map(|s| s.to_string()).collect();
+
+            for (idx, intersection) in map_pt_object_doubloons {
+                for i in intersection {
+                    let mut pt_object = collection.index_mut(idx);
+                    pt_object.comment_links_mut().remove(&i);
+                    pt_object
+                        .comment_links_mut()
+                        .insert(doubloons2ref[&i].clone());
+                }
             }
         }
-        self.lines = CollectionWithId::new(lines).unwrap();
     }
 
-    fn is_any_comment_similar(&self, candidate: &Comment, collection: &BTreeSet<&str>) -> bool {
-        for other in collection {
-            if self
-                .comments
-                .get(other)
-                .map_or_else(|| false, |c| candidate.is_similar(c))
-            {
-                return true;
+    /// From comment collection only, return a map of the similar comments.
+    ///
+    /// Result: doubloons (comments to be removed) are mapped to their
+    /// referent comment (unique to be kept and similar to given doubloon)
+    fn get_comment_map_doubloon_to_referent(&self) -> BTreeMap<String, String> {
+        let mut doubloon2ref: BTreeMap<String, String> = BTreeMap::new();
+        // Map of the referent comments id (uniqueness given the similar comparison)
+        let mut map_ref: BTreeMap<SimilarComment, &str> = BTreeMap::new();
+
+        for (_, comment) in &self.comments {
+            let sim = SimilarComment { comment };
+            if let Some(ref_id) = map_ref.get(&sim) {
+                doubloon2ref.insert(comment.id.to_string(), ref_id.to_string());
+            } else {
+                map_ref.insert(sim, &comment.id);
             }
         }
-        false
+        doubloon2ref
     }
 
     /// If the route name is empty, it is derived from the most frequent
@@ -1132,6 +1165,7 @@ impl Model {
     /// assert!(Model::new(collections).is_ok());
     /// ```
     pub fn new(mut c: Collections) -> Result<Self> {
+        c.comment_deduplication();
         c.sanitize()?;
 
         let forward_vj_to_sp = c
